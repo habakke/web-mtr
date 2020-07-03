@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Web MTR trace</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.16.0/dist/bootstrap-table.min.css">
+
+    <style>
+        .bs-example{
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container h-100">
+    <div class="row h-100 justify-content-center align-items-center">
+        <div class="col-md-12">
+            <h1 class="text-center">MTR Trace</h1>
+        </div>
+    </div>
+
+    <div class="row h-100 justify-content-center align-items-center">
+        <div class="form-inline col-4">
+            <div class="form-group mr-2">
+                <label class="sr-only" for="inputIPAddress">IP Address</label>
+                <input type="text" class="form-control" id="inputIPAddress" placeholder="IP address" required>
+            </div>
+            <button id="trace" class="btn btn-primary">Trace</button>
+        </div>
+    </div>
+
+    <div class="row mx-md-n5 p-5">
+        <div class="col px-md-5"><div class="p-3 border bg-light"><pre id="output">No trace data available yet.</pre></div></div>
+        <table id="table"></table>
+    </div>
+</div>
+
+</body>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+<script src="https://unpkg.com/bootstrap-table@1.16.0/dist/bootstrap-table.min.js"></script>
+
+<script>
+
+    $(document).ready(function() {
+
+        $.getJSON("https://ipinfo.io/json", function (data) {
+            console.log("Client IP detected: ", data.ip);
+            window.ip = data.ip;
+            $("#inputIPAddress").val(data.ip);
+        });
+
+        $("#inputIPAddress").change(function () {
+            window.ip = $("#inputIPAddress").val();
+        });
+
+        $("#trace").click(function () {
+            if(isDefined(window.ip) && isIPAddress(window.ip)) {
+                console.log("Starting trace of ", window.ip);
+                $("#trace").attr("disabled", true);
+                trace(window.ip);
+            } else {
+                console.log("No IP defined, skipping...");
+                showOutput("No IP defined, skipping...");
+            }
+        });
+
+    });
+
+    function isDefined(val) {
+        return ((typeof val !== 'undefined') && (val !== ""))
+    }
+
+    function isIPAddress(ipaddress)
+    {
+        return (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ipaddress))
+    }
+
+    function handleHTTPErrors(res) {
+        if (!res.ok) {
+            throw Error(res.statusText);
+        }
+        return res;
+    }
+
+    function showOutput(text) {
+        $("#output").text(text);
+    }
+
+    function roundNum(num) {
+        return Math.round((num + Number.EPSILON) * 100) / 100
+    }
+
+    function updateTable(data) {
+
+        var keys = Object.keys(data);
+        var tableData = [];
+        for(var i=1; i<=keys.length; i++){
+            var row = data[i];
+            row.id = i;
+            row.loss_percent = roundNum(row.loss_percent);
+            row.avg_ms = roundNum(row.avg_ms);
+            tableData.push(row);
+        }
+
+        $('#table').bootstrapTable({
+            columns: [{
+                field: 'id',
+                title: 'Index'
+            }, {
+                field: 'target',
+                title: 'Target'
+            }, {
+                field: 'loss_percent',
+                title: 'Loss (%)'
+            }, {
+                field: 'avg_ms',
+                title: 'Avg. ping'
+            }],
+            data: tableData
+        });
+    }
+
+    function trace(ip) {
+        const URL="/trace?ip=";
+        fetch(URL+ip)
+            .then(handleHTTPErrors)
+            .then(data => {return data.json()})
+            .then(res => {
+                showOutput(JSON.stringify(res, null, 2));
+                updateTable(res);
+                $("#trace").attr("disabled", false);
+            }).catch(err => {
+                console.log("Failed to run trace: ", err);
+                showOutput(err);
+                $("#trace").attr("disabled", false);
+            });
+    }
+
+</script>
+</html>

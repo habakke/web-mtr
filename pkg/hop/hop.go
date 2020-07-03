@@ -34,6 +34,23 @@ type packet struct {
 	ResponseTime float64 `json:"respond_ms"`
 }
 
+func New(sent, ttl int, target string, timeout time.Duration, last, best, worst icmp.ICMPReturn, lost int, sumElapsed time.Duration, packets *ring.Ring, ringBufferSize int) *HopStatistic {
+	return &HopStatistic{
+		Sent:           sent,
+		TTL:            ttl,
+		Target:         target,
+		Timeout:        timeout,
+		Last:           last,
+		Best:           best,
+		Worst:          worst,
+		Lost:           lost,
+		SumElapsed:     sumElapsed,
+		Packets:        packets,
+		RingBufferSize: ringBufferSize,
+		dnsCache:       map[string]string{},
+	}
+}
+
 func (s *HopStatistic) Next(srcAddr string) {
 	if s.Target == "" {
 		return
@@ -82,7 +99,7 @@ func (h *HopStatistic) MarshalJSON() ([]byte, error) {
 		Sent:             h.Sent,
 		TTL:              h.TTL,
 		Loss:             h.Loss(),
-		Target:           h.Target,
+		Target:           h.lookupAddr(true),
 		PacketBufferSize: h.RingBufferSize,
 		Last:             h.Last.Elapsed.Seconds() * 1000,
 		Best:             h.Best.Elapsed.Seconds() * 1000,
@@ -161,7 +178,7 @@ func (h *HopStatistic) Render(ptrLookup bool) {
 }
 
 func (h *HopStatistic) lookupAddr(ptrLookup bool) string {
-	addr := "???"
+	addr := "-"
 	if h.Target != "" {
 		addr = h.Target
 		if ptrLookup {

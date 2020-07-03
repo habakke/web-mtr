@@ -18,6 +18,10 @@
 
 <div class="container h-100">
     <div class="row h-100 justify-content-center align-items-center">
+        <div class="col-md-6">
+            <div id="alerts"></div>
+        </div>
+
         <div class="col-md-12">
             <h1 class="text-center">MTR Trace</h1>
         </div>
@@ -34,8 +38,11 @@
     </div>
 
     <div class="row mx-md-n5 p-5">
-        <div class="col px-md-5"><div class="p-3 border bg-light"><pre id="output">No trace data available yet.</pre></div></div>
-        <table id="table"></table>
+        <div class="col px-md-5">
+            <div class="p-3">
+                <table id="table"></table>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -62,11 +69,11 @@
         $("#trace").click(function () {
             if(isDefined(window.ip) && isIPAddress(window.ip)) {
                 console.log("Starting trace of ", window.ip);
-                $("#trace").attr("disabled", true);
+                toggleInput(false);
                 trace(window.ip);
             } else {
                 console.log("No IP defined, skipping...");
-                showOutput("No IP defined, skipping...");
+                showAlert("No IP defined, skipping...", "warning");
             }
         });
 
@@ -88,8 +95,18 @@
         return res;
     }
 
-    function showOutput(text) {
-        $("#output").text(text);
+    function showAlert(text, type) {
+        const alertTypes = ["primary", "secondary", "success", "danger", "warning", "info", "light", "dark"];
+        if (!isDefined(type)) {
+            type = "primary";
+        }
+
+        if(!alertTypes.includes(type)) {
+            console.error("Invalid alert type defined", type);
+            return
+        }
+
+        $("#alerts").html(`<div class="alert alert-${type}" role="alert">${text}</div>`);
     }
 
     function roundNum(num) {
@@ -103,8 +120,8 @@
         for(var i=1; i<=keys.length; i++){
             var row = data[i];
             row.id = i;
-            row.loss_percent = roundNum(row.loss_percent);
-            row.avg_ms = roundNum(row.avg_ms);
+            row.loss_percent = row.target !== "-" ? roundNum(row.loss_percent) : "-";
+            row.avg_ms = row.target !== "-" ? roundNum(row.avg_ms) : "-";
             tableData.push(row);
         }
 
@@ -120,10 +137,22 @@
                 title: 'Loss (%)'
             }, {
                 field: 'avg_ms',
-                title: 'Avg. ping'
+                title: 'Avg. ping (ms)'
             }],
             data: tableData
         });
+    }
+
+    function toggleInput(enabled) {
+        if(enabled===true) {
+            $("#trace").attr("disabled", false);
+            $("#trace").html("Trace");
+            $("#inputIPAddress").attr("disabled", false);
+        } else {
+            $("#trace").attr("disabled", true);
+            $("#trace").html(`<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Tracing...`);
+            $("#inputIPAddress").attr("disabled", true);
+        }
     }
 
     function trace(ip) {
@@ -132,13 +161,13 @@
             .then(handleHTTPErrors)
             .then(data => {return data.json()})
             .then(res => {
-                showOutput(JSON.stringify(res, null, 2));
+                console.log(JSON.stringify(res, null, 2));
                 updateTable(res);
-                $("#trace").attr("disabled", false);
+                toggleInput(true);
             }).catch(err => {
                 console.log("Failed to run trace: ", err);
-                showOutput(err);
-                $("#trace").attr("disabled", false);
+                showAlert(err, "danger");
+                toggleInput(true);
             });
     }
 

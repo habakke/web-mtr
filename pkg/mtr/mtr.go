@@ -59,19 +59,7 @@ func NewMTR(addr, srcAddr string, timeout time.Duration, interval time.Duration,
 }
 
 func (m *MTR) registerStatistic(ttl int, r icmp.ICMPReturn) *hop.HopStatistic {
-	m.Statistic[ttl] = &hop.HopStatistic{
-		Sent:           1,
-		TTL:            ttl,
-		Target:         r.Addr,
-		Timeout:        m.timeout,
-		Last:           r,
-		Best:           r,
-		Worst:          r,
-		Lost:           0,
-		SumElapsed:     r.Elapsed,
-		Packets:        ring.New(m.ringBufferSize),
-		RingBufferSize: m.ringBufferSize,
-	}
+	m.Statistic[ttl] = hop.New(1, ttl, r.Addr, m.timeout, r, r, r, 0, r.Elapsed, ring.New(m.ringBufferSize), m.ringBufferSize)
 	if !r.Success {
 		m.Statistic[ttl].Lost++
 	}

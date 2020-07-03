@@ -1,5 +1,5 @@
 .idea
-build/
+build/**
 src/vendor/
 *.iml
 .DS_Store

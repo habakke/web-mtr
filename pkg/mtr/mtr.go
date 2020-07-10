@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	gm "github.com/buger/goterm"
 	"github.com/habakke/web-mtr/pkg/hop"
 	"github.com/habakke/web-mtr/pkg/icmp"
 )
@@ -65,18 +64,6 @@ func (m *MTR) registerStatistic(ttl int, r icmp.ICMPReturn) *hop.HopStatistic {
 	}
 	m.Statistic[ttl].Packets.Value = r
 	return m.Statistic[ttl]
-}
-
-func (m *MTR) Render(offset int) {
-	gm.MoveCursor(1, offset)
-	l := fmt.Sprintf("%d", m.ringBufferSize)
-	gm.Printf("HOP:    %-20s  %5s%%  %4s  %6s  %6s  %6s  %6s  %"+l+"s\n", "Address", "Loss", "Sent", "Last", "Avg", "Best", "Worst", "Packets")
-	for i := 1; i <= len(m.Statistic); i++ {
-		gm.MoveCursor(1, offset+i)
-		m.mutex.RLock()
-		m.Statistic[i].Render(m.ptrLookup)
-		m.mutex.RUnlock()
-	}
 }
 
 func (m *MTR) ping(ch chan struct{}, count int) {

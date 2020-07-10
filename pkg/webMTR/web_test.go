@@ -2,7 +2,6 @@ package webMTR
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/habakke/web-mtr/pkg/hop"
 	"net/http"
 	"net/http/httptest"
@@ -16,7 +15,7 @@ func isRoot() bool {
 
 func TestTraceHandlerHappyDay(t *testing.T) {
 	address := "1.1.1.1"
-	url := fmt.Sprintf("/trace?ip=%s", address)
+	url := "/trace"
 
 	if !isRoot() {
 		t.Fatalf("This test has to run as root (current UID=%d)", os.Getuid())
@@ -26,6 +25,9 @@ func TestTraceHandlerHappyDay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	q := req.URL.Query()
+	q.Add("ip", address)
+	req.URL.RawQuery = q.Encode()
 
 	wm := NewWebMTR(":8080", "/opt/web", 3)
 	defer wm.Close()

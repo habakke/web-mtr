@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	REQUEST_COUNT int = 60
+	REQUEST_COUNT = 60
 
 	wm *webMTR.WebMTR
 
